@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { Lock, Mail, User as UserIcon, MessageSquare, Loader2, ArrowRight } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
   const { login, register, isLoading } = useAuth();
+  const { toast } = useToast();
   const [isRegisterMode, setIsRegisterMode] = useState<boolean>(false);
 
   const [username, setUsername] = useState<string>('');
@@ -21,19 +23,24 @@ export const AuthModal: React.FC = () => {
       if (isRegisterMode) {
         if (!username || !email || !password) {
           setError('Lütfen tüm alanları doldurun.');
+          toast.warning('Lütfen tüm alanları doldurun.', 'Eksik Bilgi');
           return;
         }
         await register(username, email, password);
+        toast.success('Hesabınız başarıyla oluşturuldu!', 'Hoş Geldiniz');
       } else {
         if (!email || !password) {
           setError('Lütfen e-posta/kullanıcı adı ve şifrenizi girin.');
+          toast.warning('Lütfen kullanıcı adı ve şifrenizi girin.', 'Eksik Bilgi');
           return;
         }
         await login(email, password);
+        toast.success('Oturum başarıyla açıldı!', 'Giriş Başarılı');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'İşlem sırasında bir hata oluştu.';
       setError(msg);
+      toast.error(msg, isRegisterMode ? 'Kayıt Yapılamadı' : 'Giriş Başarısız');
     }
   };
 

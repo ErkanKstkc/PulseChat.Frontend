@@ -117,3 +117,13 @@ body {
 .typing-dot:nth-child(2) {
   animation-delay: -0.16s;
 }
+
+@keyframes toast-progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+

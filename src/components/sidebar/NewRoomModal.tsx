@@ -7,6 +7,7 @@ import type { FriendDto } from '@/api/model';
 import { RoomType } from '@/api/model/roomType';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
+import { useToast } from '@/context/ToastContext';
 import { X, Users, MessageSquare, Loader2, Check } from 'lucide-react';
 
 interface Friend {
@@ -25,6 +26,7 @@ interface NewRoomModalProps {
 export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { refreshRooms, setActiveRoomId } = useChat();
+  const { toast } = useToast();
 
   const [title, setTitle] = useState<string>('');
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
@@ -72,6 +74,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose }) =
     e.preventDefault();
     if (!title.trim()) {
       setError('Lütfen oda başlığı belirleyin.');
+      toast.warning('Lütfen bir oda başlığı belirleyin.', 'Eksik Bilgi');
       return;
     }
 
@@ -93,14 +96,20 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose }) =
 
       if (response?.isSuccess && response?.data?.id) {
         const newRoom = response.data;
+        toast.success(`"${title.trim()}" odası başarıyla oluşturuldu!`, 'Oda Hazır');
         await refreshRooms();
         setActiveRoomId(newRoom.id as string);
         onClose();
       } else {
-        setError(response?.message || 'Oda oluşturulamadı.');
+        const errorMsg = response?.message || 'Oda oluşturulamadı.';
+        toast.error(errorMsg, 'Hata');
+        setError(errorMsg);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Oda oluşturulurken hata meydana geldi.';
+      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
+      const msg =
+        axiosErr.response?.data?.message || axiosErr.message || 'Oda oluşturulurken hata meydana geldi.';
+      toast.error(msg, 'Oda Oluşturulamadı');
       setError(msg);
     } finally {
       setIsSubmitting(false);

@@ -11,6 +11,7 @@ import { postApiChatRooms } from '@/api/generated/chat/chat';
 import type { FriendDto } from '@/api/model';
 import { RoomType } from '@/api/model/roomType';
 import { useChat } from '@/context/ChatContext';
+import { useToast } from '@/context/ToastContext';
 import { UserPlus, Check, X, Loader2, MessageCircle, Clock, Users } from 'lucide-react';
 
 interface Friend {
@@ -31,6 +32,7 @@ interface PendingRequest {
 
 export const FriendsTab: React.FC = () => {
   const { onlineUsers, refreshRooms, setActiveRoomId, rooms } = useChat();
+  const { toast } = useToast();
 
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
@@ -94,13 +96,18 @@ export const FriendsTab: React.FC = () => {
       });
 
       if (res?.isSuccess) {
+        toast.success(`@${targetUsername} kullanıcısına istek gönderildi!`, 'İstek Başarılı');
         setActionMessage({ text: 'İstek başarıyla gönderildi!', isError: false });
         setTargetUsername('');
       } else {
-        setActionMessage({ text: res?.message || 'İstek gönderilemedi.', isError: true });
+        const errorMsg = res?.message || 'İstek gönderilemedi.';
+        toast.error(errorMsg, 'İstek Başarısız');
+        setActionMessage({ text: errorMsg, isError: true });
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'İstek gönderilirken hata oluştu.';
+      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
+      const msg = axiosErr.response?.data?.message || axiosErr.message || 'İstek gönderilirken hata oluştu.';
+      toast.error(msg, 'İstek Başarısız');
       setActionMessage({ text: msg, isError: true });
     } finally {
       setIsSendingRequest(false);
@@ -115,9 +122,18 @@ export const FriendsTab: React.FC = () => {
       });
 
       if (res?.isSuccess) {
+        toast.success(
+          accept ? 'Arkadaşlık isteği kabul edildi!' : 'Arkadaşlık isteği reddedildi.',
+          accept ? 'Yeni Arkadaş' : 'İstek Reddedildi'
+        );
         await fetchFriendshipData();
+      } else {
+        toast.error(res?.message || 'İşlem gerçekleştirilemedi.');
       }
-    } catch (e) {
+    } catch (e: unknown) {
+      const axiosErr = e as { response?: { data?: { message?: string } }; message?: string };
+      const msg = axiosErr.response?.data?.message || axiosErr.message || 'İşlem gerçekleştirilemedi.';
+      toast.error(msg);
       console.error('Failed to respond to friend request:', e);
     }
   };

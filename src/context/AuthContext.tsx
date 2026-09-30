@@ -77,6 +77,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         throw new Error(response?.message || 'Giriş yapılamadı.');
       }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
+      const friendlyMessage =
+        axiosErr.response?.data?.message || axiosErr.message || 'Giriş yapılamadı.';
+      throw new Error(friendlyMessage);
     } finally {
       setIsLoading(false);
     }
@@ -109,6 +114,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         throw new Error(response?.message || 'Kayıt yapılamadı.');
       }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
+      const friendlyMessage =
+        axiosErr.response?.data?.message || axiosErr.message || 'Kayıt yapılamadı.';
+      throw new Error(friendlyMessage);
     } finally {
       setIsLoading(false);
     }

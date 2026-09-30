@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useChat, DisplayMessage } from '@/context/ChatContext';
+import { useToast } from '@/context/ToastContext';
 import { postApiMediaUpload } from '@/api/generated/media/media';
 import {
   Send,
@@ -20,6 +21,7 @@ import {
 export const ChatArea: React.FC = () => {
   const { user } = useAuth();
   const { activeRoom, messages, sendMessage, sendTyping, typingUsers } = useChat();
+  const { toast } = useToast();
 
   const [inputContent, setInputContent] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -44,6 +46,10 @@ export const ChatArea: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.warning('Dosya boyutu en fazla 10MB olabilir.', 'Boyut Aşımı');
+        return;
+      }
       setSelectedFile(file);
       if (file.type.startsWith('image/')) {
         setFilePreview(URL.createObjectURL(file));
@@ -86,7 +92,7 @@ export const ChatArea: React.FC = () => {
         }
       } catch (err) {
         console.error('[Upload] File upload failed:', err);
-        alert('Dosya yüklenirken hata oluştu.');
+        toast.error('Dosya yüklenirken bir hata oluştu.', 'Yükleme Başarısız');
         setIsUploading(false);
         return;
       } finally {
