@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { AXIOS_INSTANCE } from '@/api/axios-instance';
+import {
+  getApiFriendship,
+  getApiFriendshipPending,
+  postApiFriendshipRequest,
+  postApiFriendshipRespond,
+} from '@/api/generated/friendship/friendship';
+import { postApiChatRooms } from '@/api/generated/chat/chat';
+import type { FriendDto } from '@/api/model';
+import { RoomType } from '@/api/model/roomType';
 import { useChat } from '@/context/ChatContext';
 import { UserPlus, Check, X, Loader2, MessageCircle, Clock, Users } from 'lucide-react';
 
@@ -36,15 +44,31 @@ export const FriendsTab: React.FC = () => {
     setIsLoading(true);
     try {
       const [friendsRes, pendingRes] = await Promise.all([
-        AXIOS_INSTANCE.get('/api/Friendship'),
-        AXIOS_INSTANCE.get('/api/Friendship/pending'),
+        getApiFriendship(),
+        getApiFriendshipPending(),
       ]);
 
-      if (friendsRes.data?.isSuccess) {
-        setFriends(friendsRes.data.data || []);
+      if (friendsRes?.isSuccess && friendsRes?.data) {
+        setFriends(
+          friendsRes.data.map((f: FriendDto) => ({
+            friendshipId: f.friendshipId || '',
+            friendId: f.userId || '',
+            username: f.username || 'Kullanıcı',
+            email: '',
+            avatarUrl: f.avatarUrl || null,
+          }))
+        );
       }
-      if (pendingRes.data?.isSuccess) {
-        setPendingRequests(pendingRes.data.data || []);
+      if (pendingRes?.isSuccess && pendingRes?.data) {
+        setPendingRequests(
+          pendingRes.data.map((p: FriendDto) => ({
+            friendshipId: p.friendshipId || '',
+            requesterId: p.userId || '',
+            requesterUsername: p.username || 'Bilinmeyen Kullanıcı',
+            requesterEmail: '',
+            createdAt: p.createdAt || '',
+          }))
+        );
       }
     } catch (e) {
       console.error('Failed to load friends/pending:', e);
@@ -65,15 +89,15 @@ export const FriendsTab: React.FC = () => {
     setActionMessage(null);
 
     try {
-      const res = await AXIOS_INSTANCE.post('/api/Friendship/request', {
+      const res = await postApiFriendshipRequest({
         targetUsername: targetUsername.trim(),
       });
 
-      if (res.data?.isSuccess) {
+      if (res?.isSuccess) {
         setActionMessage({ text: 'İstek başarıyla gönderildi!', isError: false });
         setTargetUsername('');
       } else {
-        setActionMessage({ text: res.data?.message || 'İstek gönderilemedi.', isError: true });
+        setActionMessage({ text: res?.message || 'İstek gönderilemedi.', isError: true });
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'İstek gönderilirken hata oluştu.';
@@ -85,12 +109,12 @@ export const FriendsTab: React.FC = () => {
 
   const handleRespondRequest = async (friendshipId: string, accept: boolean) => {
     try {
-      const res = await AXIOS_INSTANCE.post('/api/Friendship/respond', {
+      const res = await postApiFriendshipRespond({
         friendshipId,
         accept,
       });
 
-      if (res.data?.isSuccess) {
+      if (res?.isSuccess) {
         await fetchFriendshipData();
       }
     } catch (e) {
@@ -111,16 +135,16 @@ export const FriendsTab: React.FC = () => {
 
     // Create a new direct room
     try {
-      const res = await AXIOS_INSTANCE.post('/api/Chat/rooms', {
+      const res = await postApiChatRooms({
         title: friend.username,
-        type: 1, // Direct
+        type: RoomType.NUMBER_0, // Direct
         avatarUrl: null,
         memberIds: [friend.friendId],
       });
 
-      if (res.data?.isSuccess && res.data?.data) {
+      if (res?.isSuccess && res?.data?.id) {
         await refreshRooms();
-        setActiveRoomId(res.data.data.id);
+        setActiveRoomId(res.data.id);
       }
     } catch (e) {
       console.error('Failed to create direct room:', e);

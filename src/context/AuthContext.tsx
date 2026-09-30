@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { AXIOS_INSTANCE } from '@/api/axios-instance';
+import { postApiAuthLogin, postApiAuthRegister } from '@/api/generated/auth/auth';
 import { signalRService } from '@/lib/signalr';
 
 export interface User {
@@ -54,26 +54,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (emailOrUsername: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await AXIOS_INSTANCE.post('/api/Auth/login', {
+      const response = await postApiAuthLogin({
         emailOrUsername,
         password,
       });
 
-      if (response.data?.isSuccess && response.data?.data) {
-        const { accessToken, refreshToken, user: loggedInUser } = response.data.data;
+      if (response?.isSuccess && response?.data) {
+        const { accessToken, refreshToken, user: loggedInUser } = response.data;
 
-        localStorage.setItem('pulsechat_token', accessToken);
-        localStorage.setItem('pulsechat_refresh_token', refreshToken);
-        localStorage.setItem('pulsechat_user_id', loggedInUser.id);
-        localStorage.setItem('pulsechat_user', JSON.stringify(loggedInUser));
+        if (accessToken && refreshToken && loggedInUser?.id) {
+          localStorage.setItem('pulsechat_token', accessToken);
+          localStorage.setItem('pulsechat_refresh_token', refreshToken);
+          localStorage.setItem('pulsechat_user_id', loggedInUser.id);
+          localStorage.setItem('pulsechat_user', JSON.stringify(loggedInUser));
 
-        setToken(accessToken);
-        setUser(loggedInUser);
+          setToken(accessToken);
+          setUser(loggedInUser as User);
 
-        // Start SignalR connection
-        await signalRService.startConnection(accessToken);
+          // Start SignalR connection
+          await signalRService.startConnection(accessToken);
+        }
       } else {
-        throw new Error(response.data?.message || 'Giriş yapılamadı.');
+        throw new Error(response?.message || 'Giriş yapılamadı.');
       }
     } finally {
       setIsLoading(false);
@@ -83,32 +85,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (username: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await AXIOS_INSTANCE.post('/api/Auth/register', {
+      const response = await postApiAuthRegister({
         username,
         email,
         password,
       });
 
-      if (response.data?.isSuccess && response.data?.data) {
-        const { accessToken, refreshToken, user: registeredUser } = response.data.data;
+      if (response?.isSuccess && response?.data) {
+        const { accessToken, refreshToken, user: registeredUser } = response.data;
 
-        localStorage.setItem('pulsechat_token', accessToken);
-        localStorage.setItem('pulsechat_refresh_token', refreshToken);
-        localStorage.setItem('pulsechat_user_id', registeredUser.id);
-        localStorage.setItem('pulsechat_user', JSON.stringify(registeredUser));
+        if (accessToken && refreshToken && registeredUser?.id) {
+          localStorage.setItem('pulsechat_token', accessToken);
+          localStorage.setItem('pulsechat_refresh_token', refreshToken);
+          localStorage.setItem('pulsechat_user_id', registeredUser.id);
+          localStorage.setItem('pulsechat_user', JSON.stringify(registeredUser));
 
-        setToken(accessToken);
-        setUser(registeredUser);
+          setToken(accessToken);
+          setUser(registeredUser as User);
 
-        // Start SignalR connection
-        await signalRService.startConnection(accessToken);
+          // Start SignalR connection
+          await signalRService.startConnection(accessToken);
+        }
       } else {
-        throw new Error(response.data?.message || 'Kayıt yapılamadı.');
+        throw new Error(response?.message || 'Kayıt yapılamadı.');
       }
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const logout = () => {
     localStorage.removeItem('pulsechat_token');

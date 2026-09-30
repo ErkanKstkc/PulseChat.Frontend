@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useChat, DisplayMessage } from '@/context/ChatContext';
-import { AXIOS_INSTANCE } from '@/api/axios-instance';
+import { postApiMediaUpload } from '@/api/generated/media/media';
 import {
   Send,
   Paperclip,
@@ -76,15 +76,12 @@ export const ChatArea: React.FC = () => {
     if (selectedFile) {
       setIsUploading(true);
       try {
-        const formData = new FormData();
-        formData.append('File', selectedFile);
-
-        const uploadRes = await AXIOS_INSTANCE.post('/api/Media/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+        const uploadRes = await postApiMediaUpload({
+          File: selectedFile,
         });
 
-        if (uploadRes.data?.isSuccess && uploadRes.data?.data) {
-          mediaUrl = uploadRes.data.data.url;
+        if (uploadRes?.isSuccess && uploadRes?.data?.url) {
+          mediaUrl = uploadRes.data.url;
           messageType = selectedFile.type.startsWith('image/') ? 'Image' : 'File';
         }
       } catch (err) {

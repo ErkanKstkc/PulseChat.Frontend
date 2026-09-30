@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { AXIOS_INSTANCE } from '@/api/axios-instance';
+import { getApiChatRooms, getApiChatRoomsRoomIdMessages } from '@/api/generated/chat/chat';
+import type { MessageDto } from '@/api/model';
 import { signalRService, ChatMessageDto } from '@/lib/signalr';
 import { useAuth } from './AuthContext';
 
@@ -70,9 +71,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!isAuthenticated) return;
     setIsLoadingRooms(true);
     try {
-      const response = await AXIOS_INSTANCE.get('/api/Chat/rooms');
-      if (response.data?.isSuccess && response.data?.data) {
-        setRooms(response.data.data);
+      const response = await getApiChatRooms();
+      if (response?.isSuccess && response?.data) {
+        setRooms(response.data as unknown as Room[]);
       }
     } catch (e) {
       console.error('[Chat] Failed to fetch rooms:', e);
@@ -100,12 +101,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('[SignalR] Failed to join room:', err);
     });
 
-    // Fetch history from MongoDB via API
-    AXIOS_INSTANCE.get(`/api/Chat/rooms/${activeRoomId}/messages`)
+    // Fetch history from MongoDB via Orval generated API
+    getApiChatRoomsRoomIdMessages(activeRoomId)
       .then((response) => {
-        if (isMounted && response.data?.isSuccess && response.data?.data) {
-          const fetchedMessages: DisplayMessage[] = response.data.data.map((m: ChatMessageDto) => ({
-            ...m,
+        if (isMounted && response?.isSuccess && response?.data) {
+          const fetchedMessages: DisplayMessage[] = response.data.map((m: MessageDto) => ({
+            id: m.id || '',
+            clientMessageId: m.clientMessageId || '',
+            roomId: m.roomId || activeRoomId,
+            senderId: m.senderId || '',
+            type: String(m.type ?? 'Text'),
+            content: m.content || '',
+            mediaUrl: m.mediaUrl || null,
+            createdAt: m.createdAt || new Date().toISOString(),
             isDelivered: true,
             isPending: false,
           }));

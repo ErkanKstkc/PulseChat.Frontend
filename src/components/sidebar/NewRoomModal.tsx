@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AXIOS_INSTANCE } from '@/api/axios-instance';
+import { getApiFriendship } from '@/api/generated/friendship/friendship';
+import { postApiChatRooms } from '@/api/generated/chat/chat';
+import type { FriendDto } from '@/api/model';
+import { RoomType } from '@/api/model/roomType';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
 import { X, Users, MessageSquare, Loader2, Check } from 'lucide-react';
@@ -35,10 +38,18 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose }) =
 
     setIsLoadingFriends(true);
     setError(null);
-    AXIOS_INSTANCE.get('/api/Friendship')
+    getApiFriendship()
       .then((res) => {
-        if (res.data?.isSuccess && res.data?.data) {
-          setFriends(res.data.data);
+        if (res?.isSuccess && res?.data) {
+          setFriends(
+            res.data.map((f: FriendDto) => ({
+              friendshipId: f.friendshipId || '',
+              friendId: f.userId || '',
+              username: f.username || 'Kullanıcı',
+              email: '',
+              avatarUrl: f.avatarUrl || null,
+            }))
+          );
         }
       })
       .catch((e) => {
@@ -70,23 +81,23 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose }) =
     setError(null);
 
     const memberIds = Array.from(new Set([user.id, ...selectedFriendIds]));
-    const roomType = memberIds.length > 2 ? 2 : 1; // 1 = Direct, 2 = Group
+    const roomType = memberIds.length > 2 ? RoomType.NUMBER_1 : RoomType.NUMBER_0; // 0 = Direct, 1 = Group
 
     try {
-      const response = await AXIOS_INSTANCE.post('/api/Chat/rooms', {
+      const response = await postApiChatRooms({
         title: title.trim(),
         type: roomType,
         avatarUrl: null,
         memberIds,
       });
 
-      if (response.data?.isSuccess && response.data?.data) {
-        const newRoom = response.data.data;
+      if (response?.isSuccess && response?.data?.id) {
+        const newRoom = response.data;
         await refreshRooms();
-        setActiveRoomId(newRoom.id);
+        setActiveRoomId(newRoom.id as string);
         onClose();
       } else {
-        setError(response.data?.message || 'Oda oluşturulamadı.');
+        setError(response?.message || 'Oda oluşturulamadı.');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Oda oluşturulurken hata meydana geldi.';
