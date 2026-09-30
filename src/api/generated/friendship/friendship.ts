@@ -289,3 +289,62 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getGetApiFriendshipMutationOptions(options), queryClient);
     }
+    export const getApiFriendshipPending = (
+
+ options?: SecondParameter<typeof customAxiosInstance>,signal?: AbortSignal
+) => {
+
+
+      return customAxiosInstance<FriendDtoListResult>(
+      {url: `/api/Friendship/pending`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getGetApiFriendshipPendingMutationKey = () => ['getApiFriendshipPending'] as const;
+
+export const getGetApiFriendshipPendingMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getApiFriendshipPending>>, TError,void, TContext>, request?: SecondParameter<typeof customAxiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof getApiFriendshipPending>>, TError,void, TContext> => {
+
+const mutationKey = getGetApiFriendshipPendingMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getApiFriendshipPending>>, void> = () => {
+
+
+          return  getApiFriendshipPending(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GetApiFriendshipPendingMutationResult = NonNullable<Awaited<ReturnType<typeof getApiFriendshipPending>>>
+
+    export type GetApiFriendshipPendingMutationError = unknown
+
+
+    export const useGetApiFriendshipPending = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getApiFriendshipPending>>, TError,void, TContext>, request?: SecondParameter<typeof customAxiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof getApiFriendshipPending>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getGetApiFriendshipPendingMutationOptions(options), queryClient);
+    }
