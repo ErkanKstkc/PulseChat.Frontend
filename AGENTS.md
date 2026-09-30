@@ -175,6 +175,22 @@ Bir AI Ajanı kod yazarken sırasıyla şu adımları izlemelidir:
 5. **Build & Test:** Kod yazımı bitince projeyi derle (`dotnet build`) ve testleri koş (`dotnet test`).
 6. **OpenAPI Şemasını Bozma:** İstemcilerin Orval ile kod üretebilmesi için swagger çıktı bütünlüğünü kontrol et.
 
+---
+
+## 7. Kullanıcı İletişim ve Onay Protokolü (Interactive Discussion & Approval Workflow)
+
+> [!IMPORTANT]
+> **Tavizsiz Kural:** Kullanıcı soru sorduğunda, yeni bir özellik talep ettiğinde veya bir konu açtığında **hemen ve doğrudan kod yazmaya başlanamaz.** 
+
+Ajan her zaman aşağıdaki 4 aşamalı etkileşim sürecini işletmek zorundadır:
+
+1. **Durumu Açıkla (Explain the State):** Kullanıcının sorusu/talebiyle ilgili mevcut durumu, projenin o anki mimarisini ve ilgili parçaların nasıl çalıştığını detaylı ve anlaşılır şekilde açıkla.
+2. **Fikir Alışverişi Yap (Brainstorm & Discuss):** Olası çözüm yollarını, alternatif yaklaşımları, teknik avantaj/dezavantajları kullanıcıyla paylaş; kullanıcının geri bildirimini ve tercihlerini al.
+3. **Plan Çıkar (Propose Action Plan):** Birlikte varılan mutabakat doğrultusunda adım adım, net bir uygulama planı oluştur ve kullanıcıya sun.
+4. **Kullanıcı Onayını Bekle (Await Explicit Approval):** Kod yazımına veya dosya değişikliğine **yalnızca kullanıcı bu planı inceleyip açıkça onay verdikten sonra** başla. Kullanıcı onayı olmadan kesinlikle kod düzenlemesi yapılamaz.
+
+---
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
