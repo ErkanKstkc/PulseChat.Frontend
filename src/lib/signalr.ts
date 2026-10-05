@@ -24,8 +24,16 @@ export interface TypingNotificationDto {
 
 export interface PresenceNotificationDto {
   userId: string;
-  isOnline: boolean;
+  status?: string;
+  isOnline?: boolean;
+  timestamp?: string;
   lastSeen?: string;
+}
+
+export interface MessagesReadNotificationDto {
+  roomId: string;
+  userId: string;
+  readAt: string;
 }
 
 class SignalRService {
@@ -116,6 +124,15 @@ class SignalRService {
     await this.connection.invoke('SendTyping', roomId);
   }
 
+  public async markAsRead(roomId: string): Promise<void> {
+    if (!this.connection || this.connection.state !== signalR.HubConnectionState.Connected) return;
+    try {
+      await this.connection.invoke('MarkAsRead', roomId);
+    } catch (err) {
+      console.warn('[SignalR] Failed to invoke MarkAsRead:', err);
+    }
+  }
+
   public onReceiveMessage(callback: (message: ChatMessageDto) => void): () => void {
     if (!this.connection) return () => {};
     this.connection.on('ReceiveMessage', callback);
@@ -138,6 +155,12 @@ class SignalRService {
     if (!this.connection) return () => {};
     this.connection.on('UserPresenceChanged', callback);
     return () => this.connection?.off('UserPresenceChanged', callback);
+  }
+
+  public onMessagesRead(callback: (notification: MessagesReadNotificationDto) => void): () => void {
+    if (!this.connection) return () => {};
+    this.connection.on('MessagesRead', callback);
+    return () => this.connection?.off('MessagesRead', callback);
   }
 
   public onError(callback: (error: string) => void): () => void {

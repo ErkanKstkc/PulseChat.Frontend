@@ -168,8 +168,15 @@ export const Sidebar: React.FC = () => {
                         })}
                       </span>
                     </div>
-                    <div className="text-[11px] text-gray-400 truncate mt-0.5">
-                      {room.lastMessage || 'Henüz mesaj yok...'}
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="text-[11px] text-gray-400 truncate">
+                        {room.lastMessage || 'Henüz mesaj yok...'}
+                      </span>
+                      {Boolean(room.unreadCount && room.unreadCount > 0) && (
+                        <span className="ml-2 flex-shrink-0 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm shadow-indigo-500/50">
+                          {room.unreadCount! > 99 ? '99+' : room.unreadCount}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

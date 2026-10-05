@@ -216,13 +216,25 @@ export const ChatArea: React.FC = () => {
                       })}
                     </span>
                     {isMe && (
-                      <span>
+                      <span
+                        title={
+                          msg.isPending
+                            ? 'Gönderiliyor...'
+                            : msg.isRead
+                            ? 'Okundu'
+                            : msg.isDelivered
+                            ? 'İletildi'
+                            : 'Gönderildi'
+                        }
+                      >
                         {msg.isPending ? (
                           <Clock className="w-3 h-3 text-indigo-300 animate-spin" />
-                        ) : msg.isDelivered ? (
+                        ) : msg.isRead ? (
                           <CheckCheck className="w-3.5 h-3.5 text-cyan-300" />
+                        ) : msg.isDelivered ? (
+                          <CheckCheck className="w-3.5 h-3.5 text-indigo-300/60" />
                         ) : (
-                          <Check className="w-3 h-3 text-indigo-300" />
+                          <Check className="w-3 h-3 text-indigo-300/60" />
                         )}
                       </span>
                     )}

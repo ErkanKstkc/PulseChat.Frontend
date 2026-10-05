@@ -28,6 +28,7 @@ import type {
   CreateRoomRequest,
   GetApiChatRoomsRoomIdMessagesParams,
   MessageDtoListResult,
+  Result,
   RoomDtoListResult,
   RoomDtoResult
 } from '../../model';
@@ -262,3 +263,89 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getGetApiChatRoomsRoomIdMessagesMutationOptions(options), queryClient);
     }
+    export const postApiChatRoomsRoomIdRead = (
+    roomId: string,
+ options?: SecondParameter<typeof customAxiosInstance>,signal?: AbortSignal
+) => {
+
+
+      return customAxiosInstance<Result>(
+      {url: `/api/Chat/rooms/${roomId}/read`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+
+export const getPostApiChatRoomsRoomIdReadQueryKey = (roomId: string,) => {
+    return [
+    'POST', `/api/Chat/rooms/${roomId}/read`
+    ] as const;
+    }
+
+
+export const getPostApiChatRoomsRoomIdReadQueryOptions = <TData = Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>, TError = Result>(roomId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>, TError, TData>>, request?: SecondParameter<typeof customAxiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPostApiChatRoomsRoomIdReadQueryKey(roomId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>> = ({ signal }) => postApiChatRoomsRoomIdRead(roomId, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: roomId !== null && roomId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PostApiChatRoomsRoomIdReadQueryResult = NonNullable<Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>>
+export type PostApiChatRoomsRoomIdReadQueryError = Result
+
+
+export function usePostApiChatRoomsRoomIdRead<TData = Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>, TError = Result>(
+ roomId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>,
+          TError,
+          Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customAxiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePostApiChatRoomsRoomIdRead<TData = Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>, TError = Result>(
+ roomId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>,
+          TError,
+          Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customAxiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePostApiChatRoomsRoomIdRead<TData = Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>, TError = Result>(
+ roomId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>, TError, TData>>, request?: SecondParameter<typeof customAxiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function usePostApiChatRoomsRoomIdRead<TData = Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>, TError = Result>(
+ roomId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postApiChatRoomsRoomIdRead>>, TError, TData>>, request?: SecondParameter<typeof customAxiosInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPostApiChatRoomsRoomIdReadQueryOptions(roomId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+

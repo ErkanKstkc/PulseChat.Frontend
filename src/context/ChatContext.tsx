@@ -1,7 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { getApiChatRooms, getApiChatRoomsRoomIdMessages } from '@/api/generated/chat/chat';
+import {
+  getApiChatRooms,
+  getApiChatRoomsRoomIdMessages,
+  postApiChatRoomsRoomIdRead,
+} from '@/api/generated/chat/chat';
 import type { MessageDto } from '@/api/model';
 import { signalRService, ChatMessageDto } from '@/lib/signalr';
 import { useAuth } from './AuthContext';
@@ -10,6 +14,7 @@ export interface RoomMember {
   userId: string;
   role: string;
   joinedAt: string;
+  lastReadAt?: string | null;
 }
 
 export interface Room {
@@ -34,6 +39,7 @@ export interface DisplayMessage {
   mediaUrl?: string | null;
   createdAt: string;
   isDelivered?: boolean;
+  isRead?: boolean;
   isPending?: boolean;
 }
 
@@ -50,6 +56,7 @@ interface ChatContextType {
   sendMessage: (content: string, type?: string, mediaUrl?: string | null) => Promise<void>;
   sendTyping: () => void;
   refreshRooms: () => Promise<void>;
+  markRoomAsRead: (roomId: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -86,6 +93,21 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshRooms();
   }, [refreshRooms]);
 
+  // Mark room as read
+  const markRoomAsRead = useCallback(async (roomId: string) => {
+    setRooms((prev) =>
+      prev.map((r) => (r.id === roomId ? { ...r, unreadCount: 0 } : r))
+    );
+
+    postApiChatRoomsRoomIdRead(roomId).catch((err) => {
+      console.warn('[Chat] Failed to mark room as read via API:', err);
+    });
+
+    signalRService.markAsRead(roomId).catch((err) => {
+      console.warn('[SignalR] Failed to invoke markAsRead:', err);
+    });
+  }, []);
+
   // 2. Fetch Messages when activeRoomId changes
   useEffect(() => {
     if (!activeRoomId || !isAuthenticated) {
@@ -101,22 +123,38 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('[SignalR] Failed to join room:', err);
     });
 
+    // Mark room as read
+    markRoomAsRead(activeRoomId);
+
     // Fetch history from MongoDB via Orval generated API
     getApiChatRoomsRoomIdMessages(activeRoomId)
       .then((response) => {
         if (isMounted && response?.isSuccess && response?.data) {
-          const fetchedMessages: DisplayMessage[] = response.data.map((m: MessageDto) => ({
-            id: m.id || '',
-            clientMessageId: m.clientMessageId || '',
-            roomId: m.roomId || activeRoomId,
-            senderId: m.senderId || '',
-            type: String(m.type ?? 'Text'),
-            content: m.content || '',
-            mediaUrl: m.mediaUrl || null,
-            createdAt: m.createdAt || new Date().toISOString(),
-            isDelivered: true,
-            isPending: false,
-          }));
+          const currentRoom = rooms.find((r) => r.id === activeRoomId);
+          const otherMembers = currentRoom?.members?.filter((m) => m.userId !== user?.id) || [];
+          const maxOtherLastRead = otherMembers.reduce((max, m) => {
+            if (!m.lastReadAt) return max;
+            const t = new Date(m.lastReadAt).getTime();
+            return t > max ? t : max;
+          }, 0);
+
+          const fetchedMessages: DisplayMessage[] = response.data.map((m: MessageDto) => {
+            const msgTime = new Date(m.createdAt || '').getTime();
+            const isRead = maxOtherLastRead > 0 && msgTime <= maxOtherLastRead;
+            return {
+              id: m.id || '',
+              clientMessageId: m.clientMessageId || '',
+              roomId: m.roomId || activeRoomId,
+              senderId: m.senderId || '',
+              type: String(m.type ?? 'Text'),
+              content: m.content || '',
+              mediaUrl: m.mediaUrl || null,
+              createdAt: m.createdAt || new Date().toISOString(),
+              isDelivered: true,
+              isRead,
+              isPending: false,
+            };
+          });
           // Sort ascending (chronological) for chat view
           fetchedMessages.sort(
             (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -134,7 +172,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       isMounted = false;
     };
-  }, [activeRoomId, isAuthenticated]);
+  }, [activeRoomId, isAuthenticated, markRoomAsRead, rooms, user?.id]);
 
   // 3. Register SignalR listeners
   useEffect(() => {
@@ -142,7 +180,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // A. Receive incoming message
     const unsubReceive = signalRService.onReceiveMessage((newMsg) => {
-      if (newMsg.roomId === activeRoomId) {
+      const isCurrentActive = newMsg.roomId === activeRoomId;
+
+      if (isCurrentActive) {
+        if (newMsg.senderId !== user?.id) {
+          markRoomAsRead(activeRoomId);
+        }
+
         setMessages((prev) => {
           // Check if message was optimistically added
           const existingIndex = prev.findIndex(
@@ -168,13 +212,24 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      // Update room last message preview
+      // Update room last message preview and unread counts
       setRooms((prev) =>
-        prev.map((r) =>
-          r.id === newMsg.roomId
-            ? { ...r, lastMessage: newMsg.content }
-            : r
-        )
+        prev.map((r) => {
+          if (r.id === newMsg.roomId) {
+            const unreadCount = isCurrentActive
+              ? 0
+              : newMsg.senderId === user?.id
+              ? r.unreadCount || 0
+              : (r.unreadCount || 0) + 1;
+
+            return {
+              ...r,
+              lastMessage: newMsg.content,
+              unreadCount,
+            };
+          }
+          return r;
+        })
       );
     });
 
@@ -210,7 +265,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubPresence = signalRService.onUserPresenceChanged((notification) => {
       setOnlineUsers((prev) => {
         const next = new Set(prev);
-        if (notification.isOnline) {
+        const isOnline = notification.isOnline ?? (notification.status === 'online');
+        if (isOnline) {
           next.add(notification.userId);
         } else {
           next.delete(notification.userId);
@@ -219,13 +275,28 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     });
 
+    // E. Messages Read (Receipts)
+    const unsubMessagesRead = signalRService.onMessagesRead((notification) => {
+      if (notification.roomId === activeRoomId && notification.userId !== user?.id) {
+        const readTime = new Date(notification.readAt).getTime();
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.senderId === user?.id && new Date(m.createdAt).getTime() <= readTime
+              ? { ...m, isRead: true, isDelivered: true }
+              : m
+          )
+        );
+      }
+    });
+
     return () => {
       unsubReceive();
       unsubAck();
       unsubTyping();
       unsubPresence();
+      unsubMessagesRead();
     };
-  }, [isAuthenticated, activeRoomId, user?.id]);
+  }, [isAuthenticated, activeRoomId, user?.id, markRoomAsRead]);
 
   // 4. Send Message
   const sendMessage = async (
@@ -246,11 +317,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mediaUrl: mediaUrl || null,
       createdAt: new Date().toISOString(),
       isDelivered: false,
+      isRead: false,
       isPending: true,
     };
 
     // Optimistic UI update
     setMessages((prev) => [...prev, optimisticMessage]);
+
+    // Update room last message preview
+    setRooms((prev) =>
+      prev.map((r) =>
+        r.id === activeRoomId ? { ...r, lastMessage: content } : r
+      )
+    );
 
     try {
       await signalRService.sendMessage(
@@ -297,6 +376,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sendMessage,
         sendTyping,
         refreshRooms,
+        markRoomAsRead,
       }}
     >
       {children}

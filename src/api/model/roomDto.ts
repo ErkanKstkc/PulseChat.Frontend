@@ -20,4 +20,9 @@ export interface RoomDto {
   createdAt?: string;
   /** @nullable */
   members?: RoomMemberDto[] | null;
+  unreadCount?: number;
+  /** @nullable */
+  lastMessage?: string | null;
+  /** @nullable */
+  lastMessageAt?: string | null;
 }
